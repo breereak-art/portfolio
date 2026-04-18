@@ -2,7 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { IconMoon, IconEnvelope, IconOctopus, IconBird, IconBriefcase, IconBasketball, IconHeart, IconCoffee, IconStar } from "./HandDrawnIcons";
 import ContactFormModal from "./ContactFormModal";
 
-const Contact = () => {
+interface ContactProps {
+  onMissionSent?: () => void;
+}
+
+const Contact = ({ onMissionSent }: ContactProps) => {
   const [isVisible, setIsVisible] = useState(false);
   const [hoveredSocial, setHoveredSocial] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -36,7 +40,7 @@ const Contact = () => {
   };
 
   return (
-    <section id="contact" ref={ref} className="py-20 px-6">
+    <section id="contact" ref={ref} className="pt-20 pb-40 md:pb-28 px-6">
       <div className="max-w-3xl mx-auto text-center">
         <h2
           className={`text-4xl md:text-6xl font-heading font-bold mb-6 transition-all duration-700 ${
@@ -55,6 +59,33 @@ const Contact = () => {
         >
           Got an idea? A project? Just want to say hi? I'd love to hear from you.
         </p>
+
+        <div
+          className={`mb-10 sketchy-border-cyan bg-card/80 p-5 text-left transition-all duration-700 delay-300 ${
+            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          }`}
+        >
+          <p className="font-mono text-xs uppercase text-muted-foreground mb-2">
+            Mission Control
+          </p>
+          <h3 className="text-2xl md:text-3xl font-heading font-bold text-crayon-cyan mb-3">
+            Your note becomes a Zo-ready brief.
+          </h3>
+          <p className="text-muted-foreground font-hand text-lg leading-relaxed mb-4">
+            When a message comes in, Bree gets the project type, timeline, and notes
+            packaged for Zo to summarize, classify, draft a reply, and suggest the next step.
+          </p>
+          <div className="grid sm:grid-cols-3 gap-2">
+            {["brief packed", "reply draft queued", "follow-up sorted"].map((step) => (
+              <span
+                key={step}
+                className="sketchy-border bg-background/60 px-3 py-2 text-center font-mono text-xs text-muted-foreground"
+              >
+                {step}
+              </span>
+            ))}
+          </div>
+        </div>
 
         {/* Email CTA */}
         <div
@@ -132,7 +163,11 @@ const Contact = () => {
         </div>
       </div>
 
-      <ContactFormModal isOpen={formOpen} onClose={() => setFormOpen(false)} />
+      <ContactFormModal
+        isOpen={formOpen}
+        onClose={() => setFormOpen(false)}
+        onMessageSent={onMissionSent}
+      />
     </section>
   );
 };

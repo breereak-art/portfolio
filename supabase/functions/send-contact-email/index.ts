@@ -2,6 +2,21 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "@supabase/supabase-js/cors";
 
 const RECIPIENT_EMAIL = Deno.env.get("CONTACT_RECIPIENT_EMAIL") || "hello@yourdomain.com";
+const ZO_WORKFLOW_EMAIL = Deno.env.get("ZO_WORKFLOW_EMAIL") || "";
+const CONTACT_FROM_EMAIL = Deno.env.get("CONTACT_FROM_EMAIL") || "onboarding@resend.dev";
+
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+const cleanText = (value: unknown, maxLength: number) => {
+  if (!value || typeof value !== "string") return "";
+  return value.trim().slice(0, maxLength);
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -9,7 +24,7 @@ serve(async (req) => {
   }
 
   try {
-    const { name, email, message } = await req.json();
+    const { name, email, message, projectType, timeline } = await req.json();
 
     // Validate input
     if (!name || typeof name !== "string" || name.trim().length === 0 || name.length > 100) {
@@ -33,8 +48,24 @@ serve(async (req) => {
       );
     }
 
-    const sanitizedName = name.trim().replace(/[<>]/g, "");
-    const sanitizedMessage = message.trim().replace(/[<>]/g, "");
+    const sanitizedName = cleanText(name, 100);
+    const sanitizedEmail = cleanText(email, 255);
+    const sanitizedProjectType = cleanText(projectType, 100) || "Not specified";
+    const sanitizedTimeline = cleanText(timeline, 100) || "Not specified";
+    const sanitizedMessage = cleanText(message, 2000);
+
+    const recipients = Array.from(
+      new Set([RECIPIENT_EMAIL, ZO_WORKFLOW_EMAIL].filter(Boolean))
+    );
+
+    const zoInstructions = [
+      "Zo workflow request: Treat this as a new portfolio lead for Bree Reak.",
+      "1. Summarize the opportunity in 3 bullet points.",
+      "2. Estimate whether it sounds like freelance work, collaboration, internship/recruiting, or general hello.",
+      "3. Draft a warm reply in Bree's playful but professional voice.",
+      "4. Suggest one follow-up question about scope, timeline, or goals.",
+      "5. Remind Bree to respond within 24 hours if this looks promising.",
+    ].join("\n");
 
     // Send email using Resend API
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
@@ -53,20 +84,36 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: `Portfolio Contact <onboarding@resend.dev>`,
-        to: [RECIPIENT_EMAIL],
-        subject: `New message from ${sanitizedName}`,
-        reply_to: email.trim(),
+        from: `Bree Reak Portfolio <${CONTACT_FROM_EMAIL}>`,
+        to: recipients,
+        subject: `[Zo Lead] Portfolio inquiry from ${sanitizedName}`,
+        reply_to: sanitizedEmail,
+        text: `${zoInstructions}
+
+Lead details
+Name: ${sanitizedName}
+Email: ${sanitizedEmail}
+Project type: ${sanitizedProjectType}
+Timeline: ${sanitizedTimeline}
+Source: Bree Reak portfolio contact form
+
+Visitor message:
+${sanitizedMessage}
+`,
         html: `
           <div style="font-family: 'Georgia', serif; max-width: 600px; margin: 0 auto; padding: 30px; background: #fdf6e3; border-radius: 12px;">
-            <h1 style="color: #e91e8c; font-size: 24px; margin-bottom: 8px;">New Portfolio Message!</h1>
+            <p style="margin: 0 0 8px; color: #777; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;">Zo-ready portfolio lead</p>
+            <h1 style="color: #e91e8c; font-size: 24px; margin-bottom: 8px;">New message for Bree</h1>
+            <div style="background: #111827; color: #fef3c7; border-radius: 8px; padding: 16px; margin: 16px 0; font-family: monospace; font-size: 13px; line-height: 1.5; white-space: pre-wrap;">${escapeHtml(zoInstructions)}</div>
             <div style="background: white; border: 2px solid #e91e8c; border-radius: 8px; padding: 20px; margin: 16px 0;">
-              <p style="margin: 0 0 8px;"><strong>From:</strong> ${sanitizedName}</p>
-              <p style="margin: 0 0 8px;"><strong>Email:</strong> ${email.trim()}</p>
+              <p style="margin: 0 0 8px;"><strong>From:</strong> ${escapeHtml(sanitizedName)}</p>
+              <p style="margin: 0 0 8px;"><strong>Email:</strong> ${escapeHtml(sanitizedEmail)}</p>
+              <p style="margin: 0 0 8px;"><strong>Project type:</strong> ${escapeHtml(sanitizedProjectType)}</p>
+              <p style="margin: 0 0 8px;"><strong>Timeline:</strong> ${escapeHtml(sanitizedTimeline)}</p>
               <hr style="border: 1px dashed #ddd; margin: 12px 0;" />
-              <p style="white-space: pre-wrap; line-height: 1.6;">${sanitizedMessage}</p>
+              <p style="white-space: pre-wrap; line-height: 1.6;">${escapeHtml(sanitizedMessage)}</p>
             </div>
-            <p style="color: #999; font-size: 12px; text-align: center;">Sent from your portfolio contact form</p>
+            <p style="color: #999; font-size: 12px; text-align: center;">Sent from Bree's portfolio contact form</p>
           </div>
         `,
       }),

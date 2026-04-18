@@ -68,7 +68,7 @@ const SecretProjectWindow = ({ onClose }: SecretProjectWindowProps) => {
             <div className="w-3.5 h-3.5 rounded-full bg-green-400 border border-green-600/30" />
           </div>
           <span className="text-sm font-heading font-bold text-background">
-            🔮 secret_project.exe
+            secret_lab.exe
           </span>
           <div className="w-16" />
         </div>

@@ -4,6 +4,7 @@ import { useTheme } from "./ThemeProvider";
 
 interface SplashScreenProps {
   onEnter: () => void;
+  onDone?: () => void;
 }
 
 // Hand-drawn SVG doodles
@@ -120,13 +121,14 @@ const playSwoosh = () => {
   }
 };
 
-const SplashScreen = ({ onEnter }: SplashScreenProps) => {
-  const [phase, setPhase] = useState<"intro" | "sucking" | "tunnel" | "done">("intro");
+const SplashScreen = ({ onEnter, onDone }: SplashScreenProps) => {
+  const [phase, setPhase] = useState<"intro" | "entering" | "reveal" | "done">("intro");
   const [textVisible, setTextVisible] = useState(false);
   const [warningsVisible, setWarningsVisible] = useState([false, false, false]);
   const [buttonVisible, setButtonVisible] = useState(false);
   const { theme, toggle } = useTheme();
   const [themeFlash, setThemeFlash] = useState(false);
+  const isEntering = phase !== "intro";
 
   const handleThemeToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -148,13 +150,16 @@ const SplashScreen = ({ onEnter }: SplashScreenProps) => {
   const handleEnter = useCallback(() => {
     playSwoosh();
     if (navigator.vibrate) navigator.vibrate(30);
-    setPhase("sucking");
-    setTimeout(() => setPhase("tunnel"), 600);
+    onEnter();
+    setPhase("entering");
+    setTimeout(() => {
+      setPhase("reveal");
+    }, 1080);
     setTimeout(() => {
       setPhase("done");
-      onEnter();
-    }, 1800);
-  }, [onEnter]);
+      onDone?.();
+    }, 1580);
+  }, [onDone, onEnter]);
 
   if (phase === "done") return null;
 
@@ -162,78 +167,67 @@ const SplashScreen = ({ onEnter }: SplashScreenProps) => {
     <div
       className={`fixed inset-0 z-[100] flex items-center justify-center overflow-hidden transition-all duration-700`}
       style={{
-        background: "hsl(var(--background))",
+        background: phase === "reveal" ? "transparent" : "hsl(var(--background))",
       }}
     >
       {/* Floating doodles */}
       {floatingDoodles.map((doodle, i) => (
         <doodle.Component
           key={i}
-          className={`absolute ${doodle.color} transition-all ${
-            phase === "sucking" || phase === "tunnel"
-              ? "duration-700"
-              : "duration-1000"
-          } ${themeFlash ? "theme-flash-doodle" : ""}`}
+          className={`absolute ${doodle.color} ${themeFlash ? "theme-flash-doodle" : ""}`}
           style={{
-            left: phase === "sucking" || phase === "tunnel" ? "50%" : doodle.x,
-            top: phase === "sucking" || phase === "tunnel" ? "50%" : doodle.y,
-            width: phase === "sucking" || phase === "tunnel" ? 0 : doodle.size,
-            height: phase === "sucking" || phase === "tunnel" ? 0 : doodle.size,
-            opacity: phase === "sucking" || phase === "tunnel" ? 0 : 0.6,
+            left: doodle.x,
+            top: doodle.y,
+            width: doodle.size,
+            height: doodle.size,
+            opacity: isEntering ? 0 : 0.6,
             animation: phase === "intro" ? `splash-float ${3 + i * 0.3}s ease-in-out infinite ${doodle.delay}s` : "none",
-            transitionDelay: `${i * 30}ms`,
-            transform: phase === "sucking" || phase === "tunnel" ? "translate(-50%, -50%) scale(0) rotate(720deg)" : "none",
+            transform: isEntering ? "scale(0.92) rotate(8deg)" : "none",
+            transition: "opacity 220ms ease, transform 520ms ease",
             filter: themeFlash ? `hue-rotate(${90 + i * 30}deg)` : "none",
           }}
         />
       ))}
 
       {/* Portal tunnel effect */}
-      {(phase === "sucking" || phase === "tunnel") && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div
+      {isEntering && phase !== "done" && (
+        <div
+          className={`portal-layer ${phase === "reveal" ? "portal-layer-reveal" : ""}`}
+        >
+          <div className="portal-wash" />
+          <div className="portal-vortex" />
+
+          {[
+            "hsl(var(--crayon-pink) / 0.58)",
+            "hsl(var(--crayon-yellow) / 0.55)",
+            "hsl(var(--crayon-cyan) / 0.5)",
+            "hsl(var(--crayon-green) / 0.45)",
+            "hsl(var(--crayon-orange) / 0.4)",
+            "hsl(var(--crayon-blue) / 0.34)",
+          ].map((color, i) => (
+            <span
               key={i}
-              className="absolute rounded-full border-2"
-              style={{
-                width: phase === "tunnel" ? 0 : `${(i + 1) * 15}vw`,
-                height: phase === "tunnel" ? 0 : `${(i + 1) * 15}vh`,
-                borderColor: [
-                  "hsl(var(--crayon-pink) / 0.4)",
-                  "hsl(var(--crayon-yellow) / 0.4)",
-                  "hsl(var(--crayon-cyan) / 0.4)",
-                  "hsl(var(--crayon-green) / 0.4)",
-                  "hsl(var(--crayon-orange) / 0.3)",
-                  "hsl(var(--crayon-blue) / 0.3)",
-                  "hsl(var(--crayon-pink) / 0.2)",
-                  "hsl(var(--crayon-yellow) / 0.2)",
-                ][i],
-                transition: `all ${0.8 + i * 0.1}s cubic-bezier(0.55, 0.06, 0.68, 0.19)`,
-                transitionDelay: `${i * 60}ms`,
-                transform: phase === "tunnel" ? "rotate(180deg) scale(0)" : `rotate(${i * 15}deg)`,
-                borderRadius: "255px 15px 225px 15px / 15px 225px 15px 255px",
-              }}
+              className="portal-ring"
+              style={
+                {
+                  "--ring-color": color,
+                  "--ring-delay": `${i * 70}ms`,
+                  "--ring-rotate": `${i * 18}deg`,
+                } as React.CSSProperties
+              }
             />
           ))}
 
-          <div
-            className="absolute rounded-full"
-            style={{
-              width: phase === "tunnel" ? "300vw" : "4px",
-              height: phase === "tunnel" ? "300vh" : "4px",
-              background: "hsl(var(--background))",
-              transition: "all 0.8s cubic-bezier(0.55, 0.06, 0.68, 0.19)",
-              transitionDelay: "400ms",
-            }}
-          />
+          <div className="portal-center" />
+          <div className="portal-flash" />
         </div>
       )}
 
       {/* Content */}
       <div
         className={`relative z-10 text-center px-6 max-w-lg mx-auto transition-all duration-700 ${
-          phase === "sucking" || phase === "tunnel"
-            ? "scale-0 opacity-0 rotate-[20deg]"
+          isEntering
+            ? "scale-50 opacity-0 rotate-[8deg] blur-sm"
             : ""
         }`}
         style={{
@@ -303,38 +297,41 @@ const SplashScreen = ({ onEnter }: SplashScreenProps) => {
         </div>
 
         {/* Enter button */}
-        <button
-          onClick={handleEnter}
-          className={`group relative text-2xl font-heading font-bold px-10 py-5 transition-all duration-500 ${
-            buttonVisible
-              ? "opacity-100 translate-y-0 scale-100"
-              : "opacity-0 translate-y-4 scale-90"
-          }`}
-          style={{
-            background: "hsl(var(--crayon-green))",
-            color: "hsl(var(--primary-foreground))",
-            border: "3px solid hsl(var(--crayon-green))",
-            borderRadius: "255px 15px 225px 15px / 15px 225px 15px 255px",
-            boxShadow: "var(--shadow-sketchy)",
-          }}
-        >
-          <span className="group-hover:scale-110 inline-flex items-center gap-2 transition-transform duration-200">
-            <IconDoor size={28} /> open the door
-          </span>
+        <div className="inline-flex flex-col items-center">
+          <button
+            onClick={handleEnter}
+            className={`group relative text-2xl font-heading font-bold px-10 py-5 transition-all duration-500 ${
+              buttonVisible
+                ? "opacity-100 translate-y-0 scale-100"
+                : "opacity-0 translate-y-4 scale-90"
+            }`}
+            style={{
+              background: "hsl(var(--crayon-green))",
+              color: "hsl(var(--primary-foreground))",
+              border: "3px solid hsl(var(--crayon-green))",
+              borderRadius: "255px 15px 225px 15px / 15px 225px 15px 255px",
+              boxShadow: "var(--shadow-sketchy)",
+            }}
+          >
+            <span className="group-hover:scale-110 inline-flex items-center gap-2 transition-transform duration-200">
+              <IconDoor size={28} /> open the door
+            </span>
 
-          <DoodleArrow
-            className="absolute -right-16 top-1/2 -translate-y-1/2 w-14 text-crayon-yellow hidden md:block"
-            style={{ transform: "translateY(-50%) rotate(-5deg)" }}
-          />
-        </button>
+            <DoodleArrow
+              className="absolute -right-16 top-1/2 -translate-y-1/2 w-14 text-crayon-yellow hidden md:block"
+              style={{ transform: "translateY(-50%) rotate(-5deg)" }}
+            />
+          </button>
 
-        <p
-          className={`mt-4 text-sm font-hand text-muted-foreground transition-all duration-500 delay-300 inline-flex items-center gap-1 ${
-            buttonVisible ? "opacity-60" : "opacity-0"
-          }`}
-        >
-          (don't worry, it's safe... mostly <IconSmiley className="text-crayon-yellow" size={16} />)
-        </p>
+          <p
+            className={`mt-3 max-w-[16rem] text-center text-sm font-hand text-muted-foreground transition-all duration-500 delay-300 inline-flex items-center justify-center gap-1 ${
+              buttonVisible ? "opacity-70" : "opacity-0"
+            }`}
+          >
+            <span>(don't worry, it's safe... mostly)</span>
+            <IconSmiley className="text-crayon-yellow shrink-0" size={16} />
+          </p>
+        </div>
       </div>
     </div>
   );

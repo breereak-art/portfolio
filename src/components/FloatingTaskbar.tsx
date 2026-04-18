@@ -35,7 +35,7 @@ const FloatingTaskbar = () => {
   }, [toggle]);
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 px-3 py-2 bg-card/90 backdrop-blur-sm border-2 border-border"
+    <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-50 flex max-w-[calc(100vw-1rem)] items-center justify-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-2 bg-card/90 backdrop-blur-sm border-2 border-border"
       style={{
         borderRadius: "255px 15px 225px 15px / 15px 225px 15px 255px",
         boxShadow: "var(--shadow-sketchy)",
@@ -47,7 +47,7 @@ const FloatingTaskbar = () => {
           href={s.href}
           onMouseEnter={() => setHoveredIdx(i)}
           onMouseLeave={() => setHoveredIdx(null)}
-          className="relative flex flex-col items-center px-2 py-1 transition-all duration-200 group"
+          className="relative flex flex-col items-center px-1.5 sm:px-2 py-1 transition-all duration-200 group"
           style={{
             transform: hoveredIdx === i ? "translateY(-6px) scale(1.15)" : "translateY(0) scale(1)",
           }}
@@ -70,7 +70,7 @@ const FloatingTaskbar = () => {
       {/* Theme toggle */}
       <button
         onClick={handleThemeToggle}
-        className={`relative flex flex-col items-center px-2 py-1 transition-all duration-200 ${themeSwitching ? "theme-switching" : ""}`}
+        className={`relative flex flex-col items-center px-1.5 sm:px-2 py-1 transition-all duration-200 ${themeSwitching ? "theme-switching" : ""}`}
         aria-label="Toggle theme"
       >
         {theme === "dark" ? (
@@ -84,7 +84,7 @@ const FloatingTaskbar = () => {
       <div className="w-px h-6 bg-border mx-1" />
 
       {/* Clock */}
-      <div className="flex flex-col items-center px-2">
+      <div className="flex flex-col items-center px-1.5 sm:px-2">
         <IconMoon className="text-crayon-yellow" size={16} />
         <span className="text-[10px] font-mono text-muted-foreground leading-none mt-0.5">{time}</span>
         <span className="text-[8px] font-hand text-muted-foreground leading-none">lil world time</span>

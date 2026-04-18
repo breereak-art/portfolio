@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { IconEnvelope, IconSparkle, IconHeart } from "./HandDrawnIcons";
 import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -6,26 +6,45 @@ import { toast } from "sonner";
 interface ContactFormModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onMessageSent?: () => void;
 }
 
-const ContactFormModal = ({ isOpen, onClose }: ContactFormModalProps) => {
-  const [formData, setFormData] = useState({ name: "", email: "", message: "" });
+const ContactFormModal = ({ isOpen, onClose, onMessageSent }: ContactFormModalProps) => {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    projectType: "",
+    timeline: "",
+    message: "",
+  });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [phase, setPhase] = useState<"entering" | "visible" | "leaving" | "hidden">("hidden");
+  const wasOpenRef = useRef(false);
 
   useEffect(() => {
+    let enterFrame = 0;
+    let visibleFrame = 0;
+    let leaveTimer: ReturnType<typeof setTimeout> | undefined;
+
     if (isOpen) {
       setPhase("entering");
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => setPhase("visible"));
+      enterFrame = requestAnimationFrame(() => {
+        visibleFrame = requestAnimationFrame(() => setPhase("visible"));
       });
-    } else if (phase !== "hidden") {
+    } else if (wasOpenRef.current) {
       setPhase("leaving");
-      const timer = setTimeout(() => setPhase("hidden"), 300);
-      return () => clearTimeout(timer);
+      leaveTimer = setTimeout(() => setPhase("hidden"), 300);
     }
-  }, [isOpen, phase]);
+
+    wasOpenRef.current = isOpen;
+
+    return () => {
+      if (enterFrame) cancelAnimationFrame(enterFrame);
+      if (visibleFrame) cancelAnimationFrame(visibleFrame);
+      if (leaveTimer) clearTimeout(leaveTimer);
+    };
+  }, [isOpen]);
 
   const handleClose = useCallback(() => {
     setPhase("leaving");
@@ -59,6 +78,8 @@ const ContactFormModal = ({ isOpen, onClose }: ContactFormModalProps) => {
         body: {
           name: formData.name.trim().slice(0, 100),
           email: formData.email.trim().slice(0, 255),
+          projectType: formData.projectType.trim().slice(0, 100),
+          timeline: formData.timeline.trim().slice(0, 100),
           message: formData.message.trim().slice(0, 2000),
         },
       });
@@ -66,7 +87,8 @@ const ContactFormModal = ({ isOpen, onClose }: ContactFormModalProps) => {
       if (error) throw error;
 
       setSent(true);
-      setFormData({ name: "", email: "", message: "" });
+      setFormData({ name: "", email: "", projectType: "", timeline: "", message: "" });
+      onMessageSent?.();
       toast.success("Message sent!");
       setTimeout(() => {
         setSent(false);
@@ -166,6 +188,34 @@ const ContactFormModal = ({ isOpen, onClose }: ContactFormModalProps) => {
 
                 <div>
                   <label className="block font-hand text-sm text-muted-foreground mb-1">
+                    What are we making?
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.projectType}
+                    onChange={(e) => setFormData((d) => ({ ...d, projectType: e.target.value }))}
+                    maxLength={100}
+                    className="w-full px-4 py-3 bg-background text-foreground font-hand text-lg sketchy-border focus:outline-none focus:border-crayon-pink transition-colors"
+                    placeholder="Portfolio, shop, app, secret world..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-hand text-sm text-muted-foreground mb-1">
+                    Timeline
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.timeline}
+                    onChange={(e) => setFormData((d) => ({ ...d, timeline: e.target.value }))}
+                    maxLength={100}
+                    className="w-full px-4 py-3 bg-background text-foreground font-hand text-lg sketchy-border focus:outline-none focus:border-crayon-pink transition-colors"
+                    placeholder="This month, no rush, ASAP..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-hand text-sm text-muted-foreground mb-1">
                     Your message
                   </label>
                   <textarea
@@ -188,11 +238,14 @@ const ContactFormModal = ({ isOpen, onClose }: ContactFormModalProps) => {
                       <span className="animate-spin">*</span> Sending...
                     </>
                   ) : (
-                    <>
-                      Send it! <IconSparkle className="text-crayon-yellow" size={20} />
-                    </>
-                  )}
+                  <>
+                    Send it! <IconSparkle className="text-crayon-yellow" size={20} />
+                  </>
+                )}
                 </button>
+                <p className="text-xs text-muted-foreground font-mono text-center">
+                  Bree's Zo gets the note ready for follow-up.
+                </p>
               </form>
             </>
           )}

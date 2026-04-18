@@ -1,88 +1,86 @@
-# Portfolio — Zo Site Deployment Docs
+# Portfolio - Zo Site Deployment Docs
 
-## What was done
+## Current State
 
-The breereak.art portfolio was cloned from GitHub to this Zo workspace at:
-`/home/workspace/bree-portfolio`
+This repo is the Bree Reak portfolio app at:
 
-A `zosite.json` build config was added so Zo can build and host it.
-The Supabase contact form was replaced with a Zo-hosted API route (`/api/contact`).
+`https://github.com/breereak-art/portfolio`
 
----
+Zo added a `zosite.json` build config and a Zo-routed contact endpoint at `/api/contact`.
 
 ## Site URL
 
-Once deployed: `https://breereak.zo.computer`
+Target Zo URL:
 
-You can configure a custom domain in [Settings > Sites](https://jaden.zo.computer/?t=sites&s=sites) after deploying.
+`https://breereak.zo.computer`
 
----
+A custom domain can be connected later from Zo's site settings. It is optional for launch.
 
-## Contact Form — How it works
+## Contact Form
 
-**Before (Supabase edge function + Resend):**
-- Frontend → Supabase function → Resend API → email to bree@breereak.art
+Current intended flow:
 
-**After (Zo-native):**
-- Frontend → `POST /api/contact` → Zo routes → Gmail integration → bree@breereak.art
+```text
+Visitor fills form
+-> POST /api/contact
+-> server.ts validates and rate-limits the message
+-> Zo API creates a Gmail draft in breereak@gmail.com
+-> Zo sends Bree a Telegram ping
+-> frontend shows the sent state only after Zo accepts the request
+```
 
-The `/api/contact` route validates input, rate-limits (5 req/min per IP), and delivers the email via your connected Gmail (breereak@gmail.com).
+Required secret:
 
----
+`ZO_API_KEY`
 
-## Environment Variables — What you need
+Set it in Zo's secrets/settings before testing the live contact form.
 
-Add these in [Settings > Advanced](https://jaden.zo.computer/?t=settings&s=advanced) under **Secrets**:
+## Build Settings
 
-| Variable | Value | Notes |
-|---|---|---|
-| `VITE_SUPABASE_URL` | leave empty or `""` | No longer used |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | leave empty or `""` | No longer used |
+Zo Sites should build the React app from this repo.
 
-The Supabase env vars are not needed anymore — the form is fully routed through Zo.
+```text
+Install/build command: bun install && bun run build
+Output directory: dist
+Run command: bun run start
+Port: 3001
+```
 
----
+The app has a tiny server for `/api/contact`. `zosite.json` points Zo at `bun run start`, which runs `server.ts`, serves the built `dist` frontend, and handles the contact API.
 
 ## Deploy Checklist
 
-- [x] Repo cloned
+- [x] Repo cloned/pulled from GitHub
 - [x] `zosite.json` added
-- [x] `bun install` completed (478 packages)
-- [ ] Build triggered (hit **Build** in [Hosting > Sites](/?t=sites&s=sites))
-- [ ] Custom domain set up (optional — paid plan required)
-- [ ] Test the contact form
-
----
+- [x] `/api/contact` endpoint added
+- [x] `bun run start` wired as the site run command
+- [ ] Add `ZO_API_KEY` secret in Zo
+- [ ] Trigger Zo build/deploy
+- [ ] Test `/api/contact` from the deployed URL
+- [ ] Submit the live form and confirm the Gmail draft appears
+- [ ] Confirm Telegram ping arrives
+- [ ] Record the 30-second challenge walkthrough
 
 ## Stack
 
-- React 19 + Vite (TypeScript)
-- Tailwind CSS v4
-- shadcn/ui + Radix UI primitives
-- Framer Motion (animations)
-- Supabase client (installed but no longer used by contact form)
-
----
-
-## Contact Form Flow
-
-```
-User fills form → POST https://breereak.zo.computer/api/contact
-  → validates name, email, message
-  → rate limit check (5/min)
-  → sends email via breereak@gmail.com Gmail
-  → returns { success: true }
-  → frontend shows "Yay, sent!"
-```
-
----
+- React 18
+- TypeScript
+- Vite
+- Tailwind CSS 3
+- shadcn/ui and Radix primitives
+- Zo API for the contact workflow
+- Supabase client is still installed, but the current contact form no longer posts to the Supabase Edge Function
 
 ## Troubleshooting
 
-**Contact form says "something went wrong":**
-- Check [Zo Browser](/browser?url=https://breereak.zo.computer/api/contact) for errors
-- Check Gmail is connected in [Integrations](/?t=settings&s=integrations)
+If the form says the message could not be routed through Zo:
 
-**Build fails:**
-- Run `bun install` in `/home/workspace/bree-portfolio` and check for errors
-- Share the build error output via [Terminal](/?t=terminal)
+- Confirm `ZO_API_KEY` is set in Zo.
+- Confirm the deployed site is serving `/api/contact`.
+- Check Zo logs for the API route.
+- Make sure Gmail and Telegram integrations are connected to the Zo account.
+
+If the frontend deploys but `/api/contact` returns 404:
+
+- Zo is probably serving only the static `dist` build.
+- Either configure the Node server/API route in Zo or switch the form back to the Supabase Edge Function path.

@@ -5,7 +5,7 @@ const FUN_MESSAGES = [
   "you absolute legend!",
   "you found all the secrets!",
   "world domination starts now",
-  "official doodle genius 🏆",
+  "official doodle genius",
   "stamp master unlocked",
   "you're officially cool",
   "bree would be proud",
@@ -13,7 +13,7 @@ const FUN_MESSAGES = [
   "you did that!!",
   "that was kinda iconic tbh",
   "you've unlocked good karma",
-  "gold star for you! ⭐",
+  "gold star for you!",
   "the stamp gods are pleased",
   "legend says you're still smiling",
 ];
@@ -135,7 +135,7 @@ export default function WinState({ onClose }: WinStateProps) {
               boxShadow: "3px 3px 0 rgba(0,0,0,0.15)",
             }}
           >
-            keep exploring →
+            keep exploring -&gt;
           </button>
         </div>
       </div>

@@ -1,20 +1,30 @@
 import { createServer } from "http";
+import type { IncomingMessage } from "http";
 import { readFileSync, existsSync } from "fs";
-import { join } from "path";
+import { join, resolve, sep } from "path";
 import { parse } from "url";
 
 const PORT = parseInt(process.env.PORT || "3001");
-const DIST_PATH = "./dist";
+const DIST_PATH = resolve("dist");
 
 // Rate limiting
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 5;
 const WINDOW_MS = 60 * 1000;
 
-function getClientIP(req: any): string {
-  return req.headers["x-forwarded-for"]?.split(",")[0].trim() || 
-         req.headers["x-real-ip"] || 
-         "unknown";
+function getClientIP(req: IncomingMessage): string {
+  const forwardedFor = req.headers["x-forwarded-for"];
+  const realIp = req.headers["x-real-ip"];
+
+  if (typeof forwardedFor === "string" && forwardedFor.trim()) {
+    return forwardedFor.split(",")[0].trim();
+  }
+
+  if (typeof realIp === "string" && realIp.trim()) {
+    return realIp.trim();
+  }
+
+  return req.socket.remoteAddress || "unknown";
 }
 
 function isRateLimited(key: string): boolean {
@@ -34,7 +44,7 @@ function escapeHtml(str: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
+    .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
 
@@ -100,7 +110,7 @@ const server = createServer((req, res) => {
           return;
         }
         
-        const subject = `New Contact: ${name.trim()} — ${projectType || "General Inquiry"}`;
+        const subject = `[Zo Lead] Portfolio inquiry from ${name.trim()}`;
         const htmlBody = `
           <h2>New Contact Form Submission</h2>
           <p><strong>Name:</strong> ${escapeHtml(name.trim())}</p>
@@ -142,6 +152,9 @@ Do not send the email.`,
           if (!zoResponse.ok) throw new Error("Zo API request failed");
         } catch (e) {
           console.error("Email error:", e);
+          res.writeHead(502, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Message could not be routed through Zo. Please try again." }));
+          return;
         }
         
         res.writeHead(200, { "Content-Type": "application/json" });
@@ -155,11 +168,11 @@ Do not send the email.`,
   }
   
   // Static files
-  let filePath = pathname === "/" ? "/index.html" : pathname;
-  const fullPath = join(DIST_PATH, filePath);
+  const filePath = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
+  const fullPath = resolve(DIST_PATH, filePath);
   
   // Security: prevent path traversal
-  if (!fullPath.startsWith(DIST_PATH)) {
+  if (fullPath !== DIST_PATH && !fullPath.startsWith(`${DIST_PATH}${sep}`)) {
     res.writeHead(404);
     res.end("Not found");
     return;

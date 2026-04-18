@@ -5,8 +5,9 @@
     "output": "dist"
   },
   "run": {
-    "port": 5173,
-    "framework": "vite"
+    "command": "bun run start",
+    "port": 3001,
+    "framework": "custom"
   },
   "publish": {
     "root": "dist"

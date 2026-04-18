@@ -106,7 +106,7 @@ const ScrollCompanion = () => {
           setSectionProgress(progress);
 
           if (active !== prevSection) {
-            playScrollSound();
+            // playScrollSound();
             prevSection = active;
           }
 

@@ -68,18 +68,20 @@ const SecretProjectWindow = ({ onClose }: SecretProjectWindowProps) => {
             <div className="w-3.5 h-3.5 rounded-full bg-green-400 border border-green-600/30" />
           </div>
           <span className="text-sm font-heading font-bold text-background">
-            secret_lab.exe
+            NULSPACE.exe
           </span>
           <div className="w-16" />
         </div>
 
         {/* Content */}
         <div
-          className="bg-card overflow-y-auto max-h-[60vh] p-2"
+          className="bg-card overflow-y-auto max-h-[65vh] md:max-h-[60vh] p-2"
           style={{
             border: "2px solid hsl(var(--border))",
             borderTop: "none",
             borderRadius: "0 0 12px 12px",
+            overscrollBehavior: "contain",
+            WebkitOverflowScrolling: "touch",
           }}
         >
           <SecretProject />

@@ -1,0 +1,14 @@
+{
+  "name": "bree-portfolio",
+  "build": {
+    "command": "bun install && bun run build",
+    "output": "dist"
+  },
+  "run": {
+    "port": 5173,
+    "framework": "vite"
+  },
+  "publish": {
+    "root": "dist"
+  }
+}

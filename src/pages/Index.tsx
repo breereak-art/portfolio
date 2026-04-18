@@ -8,6 +8,7 @@ import ScrollCompanion from "@/components/ScrollCompanion";
 import SplashScreen from "@/components/SplashScreen";
 import FloatingTaskbar from "@/components/FloatingTaskbar";
 import VisitorPassport, { type PassportStamp } from "@/components/VisitorPassport";
+import WinState from "@/components/WinState";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 const Index = () => {
@@ -18,9 +19,16 @@ const Index = () => {
     starCatcher: false,
     missionSent: false,
   });
+  const [showWin, setShowWin] = useState(false);
 
   const stampPassport = (stamp: PassportStamp) => {
-    setPassportStamps((current) => ({ ...current, [stamp]: true }));
+    setPassportStamps((current) => {
+      const next = { ...current, [stamp]: true };
+      if (next.arrived && next.starCatcher && next.missionSent) {
+        setTimeout(() => setShowWin(true), 600);
+      }
+      return next;
+    });
   };
 
   const handleEnter = () => {
@@ -36,6 +44,7 @@ const Index = () => {
           onDone={() => setShowSplash(false)}
         />
       )}
+      {showWin && <WinState onClose={() => setShowWin(false)} />}
       <div
         className={`min-h-screen bg-background transition-colors duration-500 ${
           !entered ? "overflow-hidden max-h-screen" : ""

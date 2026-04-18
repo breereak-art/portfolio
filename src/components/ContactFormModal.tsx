@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { IconEnvelope, IconSparkle, IconHeart } from "./HandDrawnIcons";
 import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 interface ContactFormModalProps {
   isOpen: boolean;
@@ -58,44 +57,45 @@ const ContactFormModal = ({ isOpen, onClose, onMessageSent }: ContactFormModalPr
     e.preventDefault();
 
     if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) {
-      toast.error("Please fill in all fields!");
+      alert("Please fill in all fields!");
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      toast.error("Please enter a valid email address!");
+      alert("Please enter a valid email address!");
       return;
     }
 
     setSending(true);
     try {
-      if (!isSupabaseConfigured || !supabase) {
-        throw new Error("Contact form is not configured.");
-      }
-
-      const { error } = await supabase.functions.invoke("send-contact-email", {
-        body: {
+      // Route through Zo's API instead of Supabase
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           name: formData.name.trim().slice(0, 100),
           email: formData.email.trim().slice(0, 255),
           projectType: formData.projectType.trim().slice(0, 100),
           timeline: formData.timeline.trim().slice(0, 100),
           message: formData.message.trim().slice(0, 2000),
-        },
+        }),
       });
 
-      if (error) throw error;
+      const result = await response.json();
+      if (!response.ok || result.error) {
+        throw new Error(result.error || "Failed to send message");
+      }
 
       setSent(true);
       setFormData({ name: "", email: "", projectType: "", timeline: "", message: "" });
       onMessageSent?.();
-      toast.success("Message sent!");
       setTimeout(() => {
         setSent(false);
         handleClose();
-      }, 2500);
-    } catch {
-      toast.error("Oops! Something went wrong. Try again?");
+      }, 1800);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Oops! Something went wrong. Try again?");
     } finally {
       setSending(false);
     }
@@ -107,7 +107,7 @@ const ContactFormModal = ({ isOpen, onClose, onMessageSent }: ContactFormModalPr
 
   return (
     <div
-      className={`fixed inset-0 z-[90] flex items-center justify-center px-4 transition-all duration-300 ${
+      className={`fixed inset-0 z-[90] flex items-end md:items-center justify-center px-4 transition-all duration-300 ${
         isVisible ? "bg-foreground/30 backdrop-blur-sm" : "bg-transparent"
       }`}
       onClick={(e) => {
@@ -115,11 +115,11 @@ const ContactFormModal = ({ isOpen, onClose, onMessageSent }: ContactFormModalPr
       }}
     >
       <div
-        className={`relative w-full max-w-md transition-all duration-300 ${
+        className={`relative w-full max-w-lg md:max-w-md transition-all duration-300 ${
           isVisible
-            ? "opacity-100 scale-100 translate-y-0"
-            : "opacity-0 scale-90 translate-y-8"
-        }`}
+            ? "opacity-100 translate-y-0 md:translate-y-0 md:scale-100"
+            : "opacity-0 translate-y-8 md:translate-y-8 md:scale-95"
+        } mb-0 md:mb-0`}
       >
         {/* Close button */}
         <button
@@ -132,34 +132,34 @@ const ContactFormModal = ({ isOpen, onClose, onMessageSent }: ContactFormModalPr
 
         {/* Form card */}
         <div
-          className="sketchy-border-pink bg-card p-6 md:p-8"
+          className="sketchy-border-pink bg-card p-4 md:p-6"
           style={{ boxShadow: "var(--shadow-sketchy-hover)" }}
         >
           {sent ? (
-            <div className="text-center py-8 animate-bounce-in">
-              <IconHeart className="text-crayon-pink mx-auto mb-4" size={48} />
-              <h3 className="text-3xl font-heading font-bold text-crayon-pink mb-2">
+            <div className="text-center py-4 animate-bounce-in">
+              <IconHeart className="text-crayon-pink mx-auto mb-2" size={36} />
+              <h3 className="text-xl font-heading font-bold text-crayon-pink mb-1">
                 Yay, sent!
               </h3>
-              <p className="font-hand text-lg text-muted-foreground">
+              <p className="font-hand text-sm text-muted-foreground">
                 I'll get back to you super soon
               </p>
             </div>
           ) : (
             <>
-              <div className="text-center mb-6">
-                <IconEnvelope className="text-crayon-yellow mx-auto mb-2" size={36} />
-                <h3 className="text-3xl font-heading font-bold text-foreground">
+              <div className="text-center mb-3">
+                <IconEnvelope className="text-crayon-yellow mx-auto mb-1" size={26} />
+                <h3 className="text-xl font-heading font-bold text-foreground">
                   Drop me a note!
                 </h3>
-                <p className="font-hand text-muted-foreground mt-1">
-                  I'd love to hear from you <IconSparkle className="text-crayon-yellow inline-block" size={16} />
+                <p className="font-hand text-xs text-muted-foreground mt-0.5">
+                  I'd love to hear from you <IconSparkle className="text-crayon-yellow inline-block" size={12} />
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} noValidate className="space-y-2.5">
                 <div>
-                  <label className="block font-hand text-sm text-muted-foreground mb-1">
+                  <label className="block font-hand text-xs text-muted-foreground mb-0.5">
                     Your name
                   </label>
                   <input
@@ -167,27 +167,29 @@ const ContactFormModal = ({ isOpen, onClose, onMessageSent }: ContactFormModalPr
                     value={formData.name}
                     onChange={(e) => setFormData((d) => ({ ...d, name: e.target.value }))}
                     maxLength={100}
-                    className="w-full px-4 py-3 bg-background text-foreground font-hand text-lg sketchy-border focus:outline-none focus:border-crayon-pink transition-colors"
+                    className="w-full px-3 py-2 bg-background text-foreground font-hand text-sm sketchy-border focus:outline-none focus:border-crayon-pink transition-colors"
                     placeholder="Ada Lovelace"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-hand text-sm text-muted-foreground mb-1">
+                  <label className="block font-hand text-xs text-muted-foreground mb-0.5">
                     Your email
                   </label>
                   <input
-                    type="email"
+                    type="text"
                     value={formData.email}
                     onChange={(e) => setFormData((d) => ({ ...d, email: e.target.value }))}
                     maxLength={255}
-                    className="w-full px-4 py-3 bg-background text-foreground font-hand text-lg sketchy-border focus:outline-none focus:border-crayon-pink transition-colors"
+                    className="w-full px-3 py-2 bg-background text-foreground font-hand text-sm sketchy-border focus:outline-none focus:border-crayon-pink transition-colors"
                     placeholder="ada@example.com"
+                    title="Enter a valid email like ada@example.com"
+                    required
                   />
                 </div>
 
                 <div>
-                  <label className="block font-hand text-sm text-muted-foreground mb-1">
+                  <label className="block font-hand text-xs text-muted-foreground mb-0.5">
                     What are we making?
                   </label>
                   <input
@@ -195,13 +197,13 @@ const ContactFormModal = ({ isOpen, onClose, onMessageSent }: ContactFormModalPr
                     value={formData.projectType}
                     onChange={(e) => setFormData((d) => ({ ...d, projectType: e.target.value }))}
                     maxLength={100}
-                    className="w-full px-4 py-3 bg-background text-foreground font-hand text-lg sketchy-border focus:outline-none focus:border-crayon-pink transition-colors"
+                    className="w-full px-3 py-2 bg-background text-foreground font-hand text-sm sketchy-border focus:outline-none focus:border-crayon-pink transition-colors"
                     placeholder="Portfolio, shop, app, secret world..."
                   />
                 </div>
 
                 <div>
-                  <label className="block font-hand text-sm text-muted-foreground mb-1">
+                  <label className="block font-hand text-xs text-muted-foreground mb-0.5">
                     Timeline
                   </label>
                   <input
@@ -209,21 +211,21 @@ const ContactFormModal = ({ isOpen, onClose, onMessageSent }: ContactFormModalPr
                     value={formData.timeline}
                     onChange={(e) => setFormData((d) => ({ ...d, timeline: e.target.value }))}
                     maxLength={100}
-                    className="w-full px-4 py-3 bg-background text-foreground font-hand text-lg sketchy-border focus:outline-none focus:border-crayon-pink transition-colors"
+                    className="w-full px-3 py-2 bg-background text-foreground font-hand text-sm sketchy-border focus:outline-none focus:border-crayon-pink transition-colors"
                     placeholder="This month, no rush, ASAP..."
                   />
                 </div>
 
                 <div>
-                  <label className="block font-hand text-sm text-muted-foreground mb-1">
+                  <label className="block font-hand text-xs text-muted-foreground mb-0.5">
                     Your message
                   </label>
                   <textarea
                     value={formData.message}
                     onChange={(e) => setFormData((d) => ({ ...d, message: e.target.value }))}
                     maxLength={2000}
-                    rows={4}
-                    className="w-full px-4 py-3 bg-background text-foreground font-hand text-lg sketchy-border focus:outline-none focus:border-crayon-pink transition-colors resize-none"
+                    rows={2}
+                    className="w-full px-3 py-2 bg-background text-foreground font-hand text-sm sketchy-border focus:outline-none focus:border-crayon-pink transition-colors resize-none"
                     placeholder="Hey! I love your work..."
                   />
                 </div>
@@ -231,19 +233,15 @@ const ContactFormModal = ({ isOpen, onClose, onMessageSent }: ContactFormModalPr
                 <button
                   type="submit"
                   disabled={sending}
-                  className="w-full crayon-btn-primary text-lg inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full crayon-btn-primary text-sm inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed py-2"
                 >
                   {sending ? (
-                    <>
-                      <span className="animate-spin">*</span> Sending...
-                    </>
+                    <><span className="animate-spin">*</span> Sending...</>
                   ) : (
-                  <>
-                    Send it! <IconSparkle className="text-crayon-yellow" size={20} />
-                  </>
-                )}
+                    <>Send it! <IconSparkle className="text-crayon-yellow" size={16} /></>
+                  )}
                 </button>
-                <p className="text-xs text-muted-foreground font-mono text-center">
+                <p className="text-[10px] text-muted-foreground font-hand text-center leading-tight">
                   Bree's Zo gets the note ready for follow-up.
                 </p>
               </form>

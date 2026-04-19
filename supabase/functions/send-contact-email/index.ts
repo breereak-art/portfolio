@@ -4,6 +4,7 @@ import { corsHeaders } from "@supabase/supabase-js/cors";
 const RECIPIENT_EMAIL = Deno.env.get("CONTACT_RECIPIENT_EMAIL") || "hello@yourdomain.com";
 const ZO_WORKFLOW_EMAIL = Deno.env.get("ZO_WORKFLOW_EMAIL") || "";
 const CONTACT_FROM_EMAIL = Deno.env.get("CONTACT_FROM_EMAIL") || "onboarding@resend.dev";
+const ZO_API_KEY = Deno.env.get("ZO_API_KEY") || "";
 
 const escapeHtml = (value: string) =>
   value
@@ -16,6 +17,38 @@ const escapeHtml = (value: string) =>
 const cleanText = (value: unknown, maxLength: number) => {
   if (!value || typeof value !== "string") return "";
   return value.trim().slice(0, maxLength);
+};
+
+const queueZoWorkflow = async (input: string) => {
+  if (!ZO_API_KEY) return { queued: false, reason: "ZO_API_KEY is not configured" };
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const response = await fetch("https://api.zo.computer/zo/ask", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${ZO_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ input }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const details = await response.text().catch(() => "");
+      console.error(`Zo API error [${response.status}]:`, details);
+      return { queued: false, reason: `Zo API error ${response.status}` };
+    }
+
+    return { queued: true };
+  } catch (error) {
+    console.error("Zo API request failed:", error);
+    return { queued: false, reason: "Zo API request failed" };
+  } finally {
+    clearTimeout(timeout);
+  }
 };
 
 serve(async (req) => {
@@ -128,8 +161,29 @@ ${sanitizedMessage}
       );
     }
 
+    const zoPrompt = `You are Bree's inbox assistant.
+
+Create a Gmail draft in the connected account breereak@gmail.com. Do not send the email.
+Use this subject line: [Zo Lead] Portfolio inquiry from ${sanitizedName}
+
+Lead summary:
+Name: ${sanitizedName}
+Email: ${sanitizedEmail}
+Project type: ${sanitizedProjectType}
+Timeline: ${sanitizedTimeline}
+Message:
+${sanitizedMessage}
+
+Write the draft in Bree's playful, casual voice so it feels warm, short, and human. Keep it roughly 80-140 words, acknowledge the lead's idea, include one helpful next-step question, and end with a friendly sign-off.
+
+After the draft is created, send a Telegram message to @Jadennixxi saying a new lead arrived and the Gmail draft is ready. Include the lead name, email, project type, and timeline.
+
+Do not send the email.`;
+
+    const zoResult = await queueZoWorkflow(zoPrompt);
+
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ success: true, zoQueued: zoResult.queued }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

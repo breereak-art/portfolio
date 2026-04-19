@@ -25,7 +25,7 @@ Current production flow for static Zo Sites:
 Visitor fills form
 -> Supabase Edge Function send-contact-email
 -> Resend sends a [Zo Lead] email to breereak@gmail.com
--> Bree's Zo/Gmail agent summarizes, classifies, drafts a reply, and reminds Bree
+-> Supabase calls Zo so the Gmail draft + Telegram ping can be queued immediately
 -> frontend shows the sent state after Supabase/Resend accepts the message
 ```
 
@@ -40,6 +40,7 @@ Required Supabase function secrets:
 - `CONTACT_RECIPIENT_EMAIL`
 - `CONTACT_FROM_EMAIL`
 - `ZO_WORKFLOW_EMAIL`
+- `ZO_API_KEY`
 
 The repo still includes `server.ts` and `/api/contact` as a fallback for a dynamic Zo server, but the current public Zo Sites deployment serves a static Vite build. For that setup, the Supabase function is the contact backend.
 
@@ -63,6 +64,7 @@ the Supabase frontend env vars are set before build.
 - [ ] Set Zo Sites frontend env vars for Supabase
 - [ ] Deploy Supabase `send-contact-email`
 - [ ] Set Supabase function secrets
+- [ ] Confirm Supabase function response includes `"zoQueued": true`
 - [ ] Trigger Zo build/deploy
 - [ ] Submit the live form and confirm email arrives at `breereak@gmail.com`
 - [ ] Confirm the Zo/Gmail agent processes the `[Zo Lead]` message

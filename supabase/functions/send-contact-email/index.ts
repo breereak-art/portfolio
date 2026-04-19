@@ -27,7 +27,7 @@ const queueZoWorkflow = async (input: string) => {
   if (!ZO_API_KEY) return { queued: false, reason: "ZO_API_KEY is not configured" };
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
+  const timeout = setTimeout(() => controller.abort(), 25000);
 
   try {
     const response = await fetch("https://api.zo.computer/zo/ask", {
@@ -49,7 +49,8 @@ const queueZoWorkflow = async (input: string) => {
     return { queued: true };
   } catch (error) {
     console.error("Zo API request failed:", error);
-    return { queued: false, reason: "Zo API request failed" };
+    const details = error instanceof Error ? `${error.name}: ${error.message}` : "Unknown error";
+    return { queued: false, reason: `Zo API request failed (${details})` };
   } finally {
     clearTimeout(timeout);
   }
@@ -187,7 +188,11 @@ Do not send the email.`;
     const zoResult = await queueZoWorkflow(zoPrompt);
 
     return new Response(
-      JSON.stringify({ success: true, zoQueued: zoResult.queued }),
+      JSON.stringify({
+        success: true,
+        zoQueued: zoResult.queued,
+        ...(zoResult.queued ? {} : { zoReason: zoResult.reason || "Unknown Zo queue failure" }),
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

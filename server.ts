@@ -98,6 +98,16 @@ const server = createServer((req, res) => {
     res.end();
     return;
   }
+
+  if (pathname === "/api/health") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      ok: true,
+      service: "bree-portfolio",
+      contactMode: "zo-background-queue",
+    }));
+    return;
+  }
   
   // API routes
   if (pathname === "/api/contact" && req.method !== "POST") {

@@ -48,6 +48,24 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#039;");
 }
 
+function sendZoLead(input: string, apiKey: string) {
+  fetch("https://api.zo.computer/zo/ask", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ input }),
+  }).then(async (zoResponse) => {
+    if (!zoResponse.ok) {
+      const details = await zoResponse.text().catch(() => "");
+      console.error("Zo workflow failed:", zoResponse.status, details);
+    }
+  }).catch((error) => {
+    console.error("Zo workflow error:", error);
+  });
+}
+
 const mimeTypes = {
   "html": "text/html",
   "htm": "text/html",
@@ -127,18 +145,14 @@ const server = createServer((req, res) => {
           <p>${escapeHtml(message.trim()).replace(/\n/g, "<br>")}</p>
         `;
         
-        try {
-          const ZO_API_KEY = process.env.ZO_API_KEY;
-          if (!ZO_API_KEY) throw new Error("ZO_API_KEY not set");
-          
-          const zoResponse = await fetch("https://api.zo.computer/zo/ask", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${ZO_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              input: `You are Bree's inbox assistant.
+        const ZO_API_KEY = process.env.ZO_API_KEY;
+        if (!ZO_API_KEY) {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Zo workflow is not configured yet." }));
+          return;
+        }
+
+        sendZoLead(`You are Bree's inbox assistant.
 
 Create a Gmail draft in the connected account breereak@gmail.com. Do not send the email.
 Use this subject line: ${subject}
@@ -150,21 +164,10 @@ Write the draft in Bree's playful, casual voice so it feels warm, short, and hum
 
 After the draft is created, send a Telegram message to @Jadennixxi saying a new lead arrived and the Gmail draft is ready. Include the lead name, email, project type, and timeline.
 
-Do not send the email.`,
-              model_name: "openai:gpt-5.4-mini-2026-03-17",
-            }),
-          });
-          
-          if (!zoResponse.ok) throw new Error("Zo API request failed");
-        } catch (e) {
-          console.error("Email error:", e);
-          res.writeHead(502, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: "Message could not be routed through Zo. Please try again." }));
-          return;
-        }
+Do not send the email.`, ZO_API_KEY);
         
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ success: true }));
+        res.end(JSON.stringify({ success: true, queued: true }));
       } catch (e) {
         res.writeHead(400, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Invalid JSON body" }));

@@ -18,22 +18,29 @@ A custom domain can be connected later from Zo's site settings. It is optional f
 
 ## Contact Form
 
-Current intended flow:
+Current production flow for static Zo Sites:
 
 ```text
 Visitor fills form
--> POST /api/contact
--> server.ts validates and rate-limits the message
--> Zo API creates a Gmail draft in breereak@gmail.com
--> Zo sends Bree a Telegram ping
--> frontend shows the sent state only after Zo accepts the request
+-> Supabase Edge Function send-contact-email
+-> Resend sends a [Zo Lead] email to breereak@gmail.com
+-> Bree's Zo/Gmail agent summarizes, classifies, drafts a reply, and reminds Bree
+-> frontend shows the sent state after Supabase/Resend accepts the message
 ```
 
-Required secret:
+Required Zo Sites frontend env:
 
-`ZO_API_KEY`
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
 
-Set it in Zo's secrets/settings before testing the live contact form.
+Required Supabase function secrets:
+
+- `RESEND_API_KEY`
+- `CONTACT_RECIPIENT_EMAIL`
+- `CONTACT_FROM_EMAIL`
+- `ZO_WORKFLOW_EMAIL`
+
+The repo still includes `server.ts` and `/api/contact` as a fallback for a dynamic Zo server, but the current public Zo Sites deployment serves a static Vite build. For that setup, the Supabase function is the contact backend.
 
 ## Build Settings
 
@@ -46,19 +53,19 @@ Run command: bun run start
 Port: 3001
 ```
 
-The app has a tiny server for `/api/contact`. `zosite.json` points Zo at `bun run start`, which runs `server.ts`, serves the built `dist` frontend, and handles the contact API.
+If Zo Sites is configured as static-only, the `dist` output is enough as long as the Supabase frontend env vars are set before build.
 
 ## Deploy Checklist
 
 - [x] Repo cloned/pulled from GitHub
 - [x] `zosite.json` added
-- [x] `/api/contact` endpoint added
-- [x] `bun run start` wired as the site run command
-- [ ] Add `ZO_API_KEY` secret in Zo
+- [x] Supabase contact function exists in the repo
+- [ ] Set Zo Sites frontend env vars for Supabase
+- [ ] Deploy Supabase `send-contact-email`
+- [ ] Set Supabase function secrets
 - [ ] Trigger Zo build/deploy
-- [ ] Test `/api/contact` from the deployed URL
-- [ ] Submit the live form and confirm the Gmail draft appears
-- [ ] Confirm Telegram ping arrives
+- [ ] Submit the live form and confirm email arrives at `breereak@gmail.com`
+- [ ] Confirm the Zo/Gmail agent processes the `[Zo Lead]` message
 - [ ] Record the 30-second challenge walkthrough
 
 ## Stack
@@ -68,8 +75,8 @@ The app has a tiny server for `/api/contact`. `zosite.json` points Zo at `bun ru
 - Vite
 - Tailwind CSS 3
 - shadcn/ui and Radix primitives
-- Zo API for the contact workflow
-- Supabase client is still installed, but the current contact form no longer posts to the Supabase Edge Function
+- Supabase Edge Function + Resend for contact delivery
+- Zo/Gmail agent for lead processing and reply drafting
 
 ## Troubleshooting
 

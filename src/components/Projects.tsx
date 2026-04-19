@@ -97,17 +97,17 @@ const projects: Project[] = [
     eyebrow: "Zo workflow",
     title: "Mission Control",
     description:
-      "A contact flow that turns visitor messages into structured mission briefs Bree can route into Zo for summaries, reply drafts, and follow-up prompts.",
+      "A contact flow that turns visitor messages into structured mission briefs sent through Supabase and Resend for Bree's Zo/Gmail workflow.",
     outcome:
-      "Zo becomes part of the story: visitors send a mission, and Bree gets help sorting the lead into a next step instead of a plain inbox note.",
+      "Zo becomes part of the story: visitors send a mission, the brief lands in Bree's inbox, and her workflow can sort the lead into a next step.",
     image: spaceDoodles,
     imageAlt: "Hand-drawn space doodles on a bright background",
     tags: ["Supabase", "Edge Functions", "Resend", "Zo"],
     highlights: ["Lead context fields", "Zo-ready brief", "Follow-up workflow"],
     caseNotes: [
       "The form captures name, email, project type, timeline, and message.",
-      "The backend sends a structured brief with instructions for Zo to summarize, classify, draft a reply, and suggest a follow-up.",
-      "The visible success state can show the mission being sorted so judges understand the Zo use quickly.",
+      "The Supabase Edge Function sends a Resend email with instructions for Zo to summarize, classify, draft a reply, and suggest a follow-up.",
+      "The visible success state shows the mission being delivered so judges understand the Zo use quickly.",
     ],
     color: "text-crayon-green",
     borderClass: "sketchy-border-cyan",

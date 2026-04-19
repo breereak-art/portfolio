@@ -257,7 +257,7 @@ const ContactFormModal = ({ isOpen, onClose, onMessageSent }: ContactFormModalPr
                   )}
                 </button>
                 <p className="text-[10px] text-muted-foreground font-hand text-center leading-tight">
-                  Bree's Zo gets the note ready for follow-up.
+                  Your note becomes a Zo-ready brief in Bree's inbox.
                 </p>
               </form>
             </>

@@ -73,10 +73,11 @@ const Contact = ({ onMissionSent }: ContactProps) => {
           </h3>
           <p className="text-muted-foreground font-hand text-lg leading-relaxed mb-4">
             When a message comes in, Bree gets the project type, timeline, and notes
-            packaged for Zo to summarize, classify, draft a reply, and suggest the next step.
+            as a structured brief her Zo/Gmail workflow can summarize, classify,
+            draft from, and turn into a next step.
           </p>
           <div className="grid sm:grid-cols-3 gap-2">
-            {["brief packed", "reply draft queued", "follow-up sorted"].map((step) => (
+            {["brief delivered", "Zo scan ready", "follow-up sorted"].map((step) => (
               <span
                 key={step}
                 className="sketchy-border bg-background/60 px-3 py-2 text-center font-mono text-xs text-muted-foreground"

@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { IconEnvelope, IconSparkle, IconHeart } from "./HandDrawnIcons";
-import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 
 interface ContactFormModalProps {
   isOpen: boolean;
@@ -82,7 +81,11 @@ const ContactFormModal = ({ isOpen, onClose, onMessageSent }: ContactFormModalPr
         }),
       });
 
-      const result = await response.json();
+      const contentType = response.headers.get("content-type") || "";
+      const result = contentType.includes("application/json")
+        ? await response.json()
+        : { error: "The contact route is not live yet. Please try again soon." };
+
       if (!response.ok || result.error) {
         throw new Error(result.error || "Failed to send message");
       }

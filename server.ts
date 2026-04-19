@@ -82,6 +82,12 @@ const server = createServer((req, res) => {
   }
   
   // API routes
+  if (pathname === "/api/contact" && req.method !== "POST") {
+    res.writeHead(405, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Method not allowed" }));
+    return;
+  }
+
   if (pathname === "/api/contact" && req.method === "POST") {
     const key = getClientIP(req);
     if (isRateLimited(key)) {

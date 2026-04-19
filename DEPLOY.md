@@ -6,13 +6,14 @@ This repo is the Bree Reak portfolio app at:
 
 `https://github.com/breereak-art/portfolio`
 
-Zo added a `zosite.json` build config and a Zo-routed contact endpoint at `/api/contact`.
+Zo added a `zosite.json` build config. The repo still has a dynamic `/api/contact`
+fallback, but the public Zo URL is currently serving a static Vite build.
 
 ## Site URL
 
-Target Zo URL:
+Current Zo URL:
 
-`https://breereak.zo.computer`
+`https://portfolio-site-breereak.zocomputer.io`
 
 A custom domain can be connected later from Zo's site settings. It is optional for launch.
 
@@ -49,11 +50,10 @@ Zo Sites should build the React app from this repo.
 ```text
 Install/build command: bun install && bun run build
 Output directory: dist
-Run command: bun run start
-Port: 3001
 ```
 
-If Zo Sites is configured as static-only, the `dist` output is enough as long as the Supabase frontend env vars are set before build.
+The current live deployment is static-only. The `dist` output is enough as long as
+the Supabase frontend env vars are set before build.
 
 ## Deploy Checklist
 
@@ -80,14 +80,21 @@ If Zo Sites is configured as static-only, the `dist` output is enough as long as
 
 ## Troubleshooting
 
-If the form says the message could not be routed through Zo:
+If the live form says the contact route is not live yet:
 
-- Confirm `ZO_API_KEY` is set in Zo.
-- Confirm the deployed site is serving `/api/contact`.
-- Check Zo logs for the API route.
-- Make sure Gmail and Telegram integrations are connected to the Zo account.
+- Confirm Zo rebuilt after `2f4b7a0c` or later.
+- Confirm `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` are set in Zo before build.
+- Confirm the built JS asset is newer than `index-DaBzT1_x.js`.
 
-If the frontend deploys but `/api/contact` returns 404:
+If the form sends but no email arrives:
 
-- Zo is probably serving only the static `dist` build.
-- Either configure the Node server/API route in Zo or switch the form back to the Supabase Edge Function path.
+- Confirm the Supabase `send-contact-email` function is deployed.
+- Confirm the Supabase function secrets are set.
+- Check Supabase function logs for Resend errors.
+- Confirm the email subject starts with `[Zo Lead] Portfolio inquiry`.
+
+If someone wants to use the dynamic `/api/contact` fallback later:
+
+- Configure Zo to run `bun run start` on port `3001`.
+- Set `ZO_API_KEY`.
+- Confirm `/api/health` returns JSON instead of `index.html`.
